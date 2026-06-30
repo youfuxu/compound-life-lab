@@ -48,6 +48,7 @@ SLUGS = {
     "定期險推薦比較": "term-life-insurance-comparison",
     "實支實付醫療險推薦": "medical-reimbursement-insurance",
     "意外險旅平險比較平台": "accident-travel-insurance",
+    "理財族帳戶資安防護2026": "investment-account-security-2026",
 }
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
