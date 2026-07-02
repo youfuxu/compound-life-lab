@@ -10,8 +10,9 @@ import html
 import markdown
 from pathlib import Path
 
-ROOT = Path(r"C:\u\compound-life-lab")
-SRC = Path(r"C:\u\passive-income-projects\03-affiliate-marketing\content")
+ROOT = Path(r"C:\Users\youfu\compound-life-lab")
+SRC = Path(r"C:\Users\youfu\passive-income-projects\03-affiliate-marketing\content")
+BASE = "https://youfuxu.github.io/compound-life-lab"
 BRAND = "複利人生實驗室"
 TAGLINE = "每天一個讓錢自動工作的方法"
 SITE_DESC = "複利人生實驗室——用台灣人熟悉的方式，把 ETF、券商開戶、信用卡、保險講清楚，幫你做出適合自己的理財決定。"
@@ -63,8 +64,8 @@ def topbar(prefix):
             f'<div class="topnav">{nav}</div></div></div>')
 
 
-def footer():
-    links = " · ".join(f'<a href="{CATS[c][1]}.html">{CATS[c][0]}</a>' for c in CAT_ORDER)
+def footer(prefix=""):
+    links = " · ".join(f'<a href="{prefix}{CATS[c][1]}.html">{CATS[c][0]}</a>' for c in CAT_ORDER)
     return (f'<footer><div class="wrap">'
             f'<div>© 2026 {BRAND} — {TAGLINE}</div>'
             f'<div>{links}</div></div></footer>')
@@ -104,11 +105,26 @@ def parse_md(path: Path):
     return {"h1": h1, "seo_title": seo_title, "meta_desc": meta_desc, "body": body_html}
 
 
-def article_page(art, cat_key, slug):
+def related_block(related):
+    if not related:
+        return ""
+    items = "".join(
+        f'<a class="card" href="{r["_slug"]}.html">'
+        f'<div class="ct">{r["_cat_name"]}</div>'
+        f'<div class="ch">{html.escape(r["h1"])}</div>'
+        f'<div class="cd">{html.escape(r["meta_desc"][:62])}…</div></a>'
+        for r in related
+    )
+    return (f'<div class="section-title" style="margin-top:48px">'
+            f'<span class="bar"></span>延伸閱讀</div>'
+            f'<div class="cards">{items}</div>')
+
+
+def article_page(art, cat_key, slug, related=None):
     cat_name, cat_slug, _ = CATS[cat_key]
     desc = html.escape(art["meta_desc"], quote=True)
     title = html.escape(art["seo_title"], quote=True)
-    url = f"https://youfuxu.github.io/compound-life-lab/posts/{slug}.html"
+    url = f"{BASE}/posts/{slug}.html"
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -116,6 +132,7 @@ def article_page(art, cat_key, slug):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} | {BRAND}</title>
 <meta name="description" content="{desc}">
+<link rel="canonical" href="{url}">
 <meta property="og:type" content="article">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
@@ -137,9 +154,10 @@ def article_page(art, cat_key, slug):
     <h3>讓錢開始自動工作</h3>
     <p>追蹤「複利人生實驗室」，{TAGLINE}。</p>
   </div>
+  {related_block(related)}
   <p class="disclaimer">本站所有文章僅供投資理財教育與資訊分享，不構成任何投資建議或勸誘。投資有風險，過去績效不代表未來表現，請依自身狀況謹慎評估，必要時諮詢專業顧問。文中標示「聯盟連結待補」處未來將放置聯盟行銷連結，若您透過連結申辦，本站可能獲得推薦獎金，但不會增加您的任何費用。</p>
 </div></article>
-{footer()}
+{footer("../")}
 </body>
 </html>
 """
@@ -154,7 +172,8 @@ def card(art, slug, prefix="posts/"):
             f'<div class="cd">{desc}…</div></a>')
 
 
-def page_shell(title, desc, body, prefix=""):
+def page_shell(title, desc, body, prefix="", canonical=""):
+    canon = f'<link rel="canonical" href="{canonical}">\n<meta property="og:url" content="{canonical}">\n' if canonical else ""
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -162,6 +181,7 @@ def page_shell(title, desc, body, prefix=""):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)}</title>
 <meta name="description" content="{html.escape(desc, quote=True)}">
+{canon}<meta property="og:type" content="website">
 <meta property="og:title" content="{html.escape(title)}">
 <meta property="og:description" content="{html.escape(desc, quote=True)}">
 <meta property="og:site_name" content="{BRAND}">
@@ -171,16 +191,15 @@ def page_shell(title, desc, body, prefix=""):
 <body>
 {topbar(prefix)}
 {body}
-{footer()}
+{footer(prefix)}
 </body>
 </html>
 """
 
 
 def main():
-    # 收集文章
+    # 收集文章（先全部讀進來，才能算同分類的延伸閱讀）
     by_cat = {c: [] for c in CAT_ORDER}
-    total = 0
     for cat_key in CAT_ORDER:
         folder = SRC / cat_key
         for md in sorted(folder.glob("*.md")):
@@ -191,8 +210,20 @@ def main():
             art = parse_md(md)
             art["_cat_name"] = CATS[cat_key][0]
             art["_slug"] = slug
-            (ROOT / "posts" / f"{slug}.html").write_text(article_page(art, cat_key, slug), encoding="utf-8")
+            art["_cat_key"] = cat_key
             by_cat[cat_key].append(art)
+
+    # 生成文章頁（含同分類延伸閱讀 2-3 篇）
+    all_arts = []
+    total = 0
+    for cat_key in CAT_ORDER:
+        arts = by_cat[cat_key]
+        for i, art in enumerate(arts):
+            related = [a for a in arts if a["_slug"] != art["_slug"]][:3]
+            slug = art["_slug"]
+            (ROOT / "posts" / f"{slug}.html").write_text(
+                article_page(art, cat_key, slug, related), encoding="utf-8")
+            all_arts.append(art)
             total += 1
     print(f"  → 已生成 {total} 篇文章頁")
 
@@ -207,7 +238,9 @@ def main():
     hero = (f'<div class="hero"><div class="wrap"><h1>{BRAND}</h1>'
             f'<p>{SITE_DESC}</p></div></div>')
     home_body = hero + '<div class="wrap">' + "".join(secs) + '</div>'
-    (ROOT / "index.html").write_text(page_shell(f"{BRAND}｜{TAGLINE}", SITE_DESC, home_body, prefix=""), encoding="utf-8")
+    (ROOT / "index.html").write_text(
+        page_shell(f"{BRAND}｜{TAGLINE}", SITE_DESC, home_body, prefix="", canonical=f"{BASE}/"),
+        encoding="utf-8")
 
     # 5 個分類索引頁
     for cat_key in CAT_ORDER:
@@ -216,8 +249,31 @@ def main():
         hero = (f'<div class="hero"><div class="wrap"><h1>{name}</h1><p>{sub}</p></div></div>')
         body = hero + f'<div class="wrap"><div class="cards" style="margin-top:36px">{cards}</div></div>'
         (ROOT / f"{cslug}.html").write_text(
-            page_shell(f"{name}｜{BRAND}", f"{name} — {sub}。{BRAND}", body, prefix=""), encoding="utf-8")
+            page_shell(f"{name}｜{BRAND}", f"{name} — {sub}。{BRAND}", body, prefix="",
+                       canonical=f"{BASE}/{cslug}.html"),
+            encoding="utf-8")
     print(f"  → 已生成 首頁 + {len(CAT_ORDER)} 個分類索引頁")
+
+    # sitemap.xml — 首頁 + 分類頁 + 全部文章頁
+    urls = [f"{BASE}/"]
+    urls += [f"{BASE}/{CATS[c][1]}.html" for c in CAT_ORDER]
+    urls += [f"{BASE}/posts/{a['_slug']}.html" for a in all_arts]
+    today = "2026-07-02"
+    entries = "\n".join(
+        f"  <url><loc>{u}</loc><lastmod>{today}</lastmod>"
+        f"<changefreq>weekly</changefreq><priority>{'1.0' if u.endswith('/') else '0.8'}</priority></url>"
+        for u in urls)
+    sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+               f"{entries}\n</urlset>\n")
+    (ROOT / "sitemap.xml").write_text(sitemap, encoding="utf-8")
+
+    # robots.txt
+    robots = ("User-agent: *\n"
+              "Allow: /\n\n"
+              f"Sitemap: {BASE}/sitemap.xml\n")
+    (ROOT / "robots.txt").write_text(robots, encoding="utf-8")
+    print(f"  → 已生成 sitemap.xml（{len(urls)} 個 URL）+ robots.txt")
     print("完成。")
 
 
