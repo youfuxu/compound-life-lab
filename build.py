@@ -56,6 +56,11 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">')
 
+CF_ANALYTICS = ('<!-- Cloudflare Web Analytics --><script defer '
+                "src='https://static.cloudflareinsights.com/beacon.min.js' "
+                'data-cf-beacon=\'{"token": "e025212f3d784f0f848b0c0e98142893"}\'>'
+                '</script><!-- End Cloudflare Web Analytics -->')
+
 
 def topbar(prefix):
     nav = "".join(f'<a href="{prefix}{CATS[c][1]}.html">{CATS[c][0]}</a>' for c in CAT_ORDER)
@@ -158,6 +163,7 @@ def article_page(art, cat_key, slug, related=None):
   <p class="disclaimer">本站所有文章僅供投資理財教育與資訊分享，不構成任何投資建議或勸誘。投資有風險，過去績效不代表未來表現，請依自身狀況謹慎評估，必要時諮詢專業顧問。文中標示「聯盟連結待補」處未來將放置聯盟行銷連結，若您透過連結申辦，本站可能獲得推薦獎金，但不會增加您的任何費用。</p>
 </div></article>
 {footer("../")}
+{CF_ANALYTICS}
 </body>
 </html>
 """
@@ -192,6 +198,7 @@ def page_shell(title, desc, body, prefix="", canonical=""):
 {topbar(prefix)}
 {body}
 {footer(prefix)}
+{CF_ANALYTICS}
 </body>
 </html>
 """
