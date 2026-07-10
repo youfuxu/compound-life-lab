@@ -53,8 +53,8 @@ tr:last-child td{border-bottom:none}
 blockquote{background:var(--green-soft);border-left:4px solid var(--green);padding:16px 20px;margin:24px 0;border-radius:0 8px 8px 0;color:var(--ink)}
 blockquote p{margin:0}
 
-/* 聯盟連結待補標記 */
-.aff{background:var(--amber-bg);color:var(--amber);font-weight:700;font-size:13.5px;padding:2px 8px;border-radius:5px;border:1px dashed var(--amber);white-space:nowrap}
+/* 聯盟連結揭露標籤 */
+.aff{background:rgba(100,116,139,.10);color:#64748b;font-weight:600;font-size:12.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(100,116,139,.35);white-space:nowrap;vertical-align:middle}
 
 /* CTA */
 .cta{background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;border-radius:14px;padding:30px 32px;margin:44px 0 8px;text-align:center}

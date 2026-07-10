@@ -105,8 +105,8 @@ def parse_md(path: Path):
     body_html = markdown.markdown(body_md, extensions=["tables", "fenced_code", "sane_lists"])
     # 表格加捲動容器
     body_html = body_html.replace("<table>", '<div class="table-scroll"><table>').replace("</table>", "</table></div>")
-    # 聯盟連結待補標記（半形/全形括號）
-    body_html = re.sub(r"[（(]\s*聯盟連結\s*[)）]", '<span class="aff">聯盟連結待補</span>', body_html)
+    # 聯盟連結揭露標籤（半形/全形括號）
+    body_html = re.sub(r"[（(]\s*聯盟連結\s*[)）]", '<span class="aff">聯盟連結</span>', body_html)
     if not meta_desc:
         # 後備：取第一段純文字前 70 字
         txt = re.sub(r"<[^>]+>", "", body_html)
@@ -164,7 +164,7 @@ def article_page(art, cat_key, slug, related=None):
     <p>追蹤「複利人生實驗室」，{TAGLINE}。</p>
   </div>
   {related_block(related)}
-  <p class="disclaimer">本站所有文章僅供投資理財教育與資訊分享，不構成任何投資建議或勸誘。投資有風險，過去績效不代表未來表現，請依自身狀況謹慎評估，必要時諮詢專業顧問。文中標示「聯盟連結待補」處未來將放置聯盟行銷連結，若您透過連結申辦，本站可能獲得推薦獎金，但不會增加您的任何費用。</p>
+  <p class="disclaimer">本站所有文章僅供投資理財教育與資訊分享，不構成任何投資建議或勸誘。投資有風險，過去績效不代表未來表現，請依自身狀況謹慎評估，必要時諮詢專業顧問。文中標示「聯盟連結」處為聯盟行銷連結，若您透過連結申辦或訂閱，本站可能獲得推薦獎金，但不會增加您的任何費用。</p>
 </div></article>
 {footer("../")}
 {CF_ANALYTICS}
