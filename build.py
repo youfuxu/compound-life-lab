@@ -31,6 +31,7 @@ CAT_ORDER = ["articles", "brokerages", "comparisons", "credit-cards", "insurance
 SLUGS = {
     "ETF推薦新手2026": "etf-beginners-2026",
     "存股策略入門2026": "dividend-stock-investing-2026",
+    "存股資產追蹤工具2026": "asset-tracking-tools-2026",
     "定存vs-ETF哪個好2026": "deposit-vs-etf-2026",
     "美股ETF台灣買法2026": "buy-us-etf-taiwan-2026",
     "國泰證券開戶優惠": "cathay-securities-account",
