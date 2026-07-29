@@ -76,9 +76,11 @@ def footer(prefix=""):
              '<a href="https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151508&url_id=22500" '
              'rel="nofollow sponsored noopener" target="_blank">NordVPN — 公共 Wi-Fi 下保護券商與網銀登入</a>'
              '（聯盟連結，不會增加你的費用）</div>')
+    radar = ('<div style="margin-top:8px">📡 每天 08:00 一分鐘看完市場哪裡不對勁 → '
+             '<a href="https://t.me/youfu_trend" rel="noopener" target="_blank">Telegram 市場異常雷達</a>（免費）</div>')
     return (f'<footer><div class="wrap">'
             f'<div>© 2026 {BRAND} — {TAGLINE}</div>'
-            f'<div>{links}</div>{tools}</div></footer>')
+            f'<div>{links}</div>{tools}{radar}</div></footer>')
 
 
 def parse_md(path: Path):
