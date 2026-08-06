@@ -7,6 +7,7 @@
 """
 import re
 import html
+import json
 import markdown
 from pathlib import Path
 
@@ -16,6 +17,9 @@ BASE = "https://youfuxu.github.io/compound-life-lab"
 BRAND = "複利人生實驗室"
 TAGLINE = "每天一個讓錢自動工作的方法"
 SITE_DESC = "複利人生實驗室——用台灣人熟悉的方式，把 ETF、券商開戶、信用卡、保險講清楚，幫你做出適合自己的理財決定。"
+# 站台發布日：同時給 sitemap 的 lastmod 與結構化資料的 datePublished 使用，
+# 兩邊共用同一個常數，避免 schema 出現與 sitemap 不一致（或憑空捏造）的日期。
+PUB_DATE = "2026-07-02"
 
 # 分類：資料夾 → (顯示名, 索引頁 slug, 說明)
 CATS = {
@@ -132,11 +136,47 @@ def related_block(related):
             f'<div class="cards">{items}</div>')
 
 
+def ldjson(obj):
+    """把 dict 包成 <script type="application/ld+json"> 區塊。"""
+    return ('<script type="application/ld+json">\n'
+            + json.dumps(obj, ensure_ascii=False, indent=2)
+            + '\n</script>')
+
+
+def site_node():
+    """WebSite 與 Organization 節點，供各頁以 @id 參照。"""
+    return [
+        {"@type": "Organization", "@id": f"{BASE}/#org",
+         "name": BRAND, "url": f"{BASE}/"},
+        {"@type": "WebSite", "@id": f"{BASE}/#website",
+         "name": BRAND, "url": f"{BASE}/", "description": SITE_DESC,
+         "inLanguage": "zh-Hant", "publisher": {"@id": f"{BASE}/#org"}},
+    ]
+
+
 def article_page(art, cat_key, slug, related=None):
     cat_name, cat_slug, _ = CATS[cat_key]
     desc = html.escape(art["meta_desc"], quote=True)
     title = html.escape(art["seo_title"], quote=True)
     url = f"{BASE}/posts/{slug}.html"
+    schema = ldjson({
+        "@context": "https://schema.org",
+        "@graph": site_node() + [{
+            "@type": "BlogPosting",
+            "@id": f"{url}#article",
+            "headline": art["h1"],
+            "description": art["meta_desc"],
+            "url": url,
+            "datePublished": PUB_DATE,
+            "dateModified": PUB_DATE,
+            "inLanguage": "zh-Hant",
+            "articleSection": cat_name,
+            "isPartOf": {"@id": f"{BASE}/#website"},
+            "mainEntityOfPage": {"@type": "WebPage", "@id": url},
+            "author": {"@id": f"{BASE}/#org"},
+            "publisher": {"@id": f"{BASE}/#org"},
+        }],
+    })
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -151,6 +191,7 @@ def article_page(art, cat_key, slug, related=None):
 <meta property="og:url" content="{url}">
 <meta property="og:site_name" content="{BRAND}">
 <meta name="twitter:card" content="summary">
+{schema}
 {FONTS}
 <link rel="stylesheet" href="../assets/style.css">
 </head>
@@ -185,8 +226,9 @@ def card(art, slug, prefix="posts/"):
             f'<div class="cd">{desc}…</div></a>')
 
 
-def page_shell(title, desc, body, prefix="", canonical=""):
+def page_shell(title, desc, body, prefix="", canonical="", schema=""):
     canon = f'<link rel="canonical" href="{canonical}">\n<meta property="og:url" content="{canonical}">\n' if canonical else ""
+    schema = (schema + "\n") if schema else ""
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -198,7 +240,7 @@ def page_shell(title, desc, body, prefix="", canonical=""):
 <meta property="og:title" content="{html.escape(title)}">
 <meta property="og:description" content="{html.escape(desc, quote=True)}">
 <meta property="og:site_name" content="{BRAND}">
-{FONTS}
+{schema}{FONTS}
 <link rel="stylesheet" href="{prefix}assets/style.css">
 </head>
 <body>
@@ -252,8 +294,19 @@ def main():
     hero = (f'<div class="hero"><div class="wrap"><h1>{BRAND}</h1>'
             f'<p>{SITE_DESC}</p></div></div>')
     home_body = hero + '<div class="wrap">' + "".join(secs) + '</div>'
+    home_schema = ldjson({
+        "@context": "https://schema.org",
+        "@graph": site_node() + [{
+            "@type": "WebPage", "@id": f"{BASE}/#webpage", "url": f"{BASE}/",
+            "name": f"{BRAND}｜{TAGLINE}", "description": SITE_DESC,
+            "inLanguage": "zh-Hant",
+            "isPartOf": {"@id": f"{BASE}/#website"},
+            "about": {"@id": f"{BASE}/#org"},
+        }],
+    })
     (ROOT / "index.html").write_text(
-        page_shell(f"{BRAND}｜{TAGLINE}", SITE_DESC, home_body, prefix="", canonical=f"{BASE}/"),
+        page_shell(f"{BRAND}｜{TAGLINE}", SITE_DESC, home_body, prefix="",
+                   canonical=f"{BASE}/", schema=home_schema),
         encoding="utf-8")
 
     # 5 個分類索引頁
@@ -262,9 +315,19 @@ def main():
         cards = "".join(card(a, a["_slug"]) for a in by_cat[cat_key])
         hero = (f'<div class="hero"><div class="wrap"><h1>{name}</h1><p>{sub}</p></div></div>')
         body = hero + f'<div class="wrap"><div class="cards" style="margin-top:36px">{cards}</div></div>'
+        cat_schema = ldjson({
+            "@context": "https://schema.org",
+            "@graph": site_node() + [{
+                "@type": "CollectionPage", "@id": f"{BASE}/{cslug}.html#page",
+                "url": f"{BASE}/{cslug}.html",
+                "name": f"{name}｜{BRAND}", "description": f"{name} — {sub}。{BRAND}",
+                "inLanguage": "zh-Hant",
+                "isPartOf": {"@id": f"{BASE}/#website"},
+            }],
+        })
         (ROOT / f"{cslug}.html").write_text(
             page_shell(f"{name}｜{BRAND}", f"{name} — {sub}。{BRAND}", body, prefix="",
-                       canonical=f"{BASE}/{cslug}.html"),
+                       canonical=f"{BASE}/{cslug}.html", schema=cat_schema),
             encoding="utf-8")
     print(f"  → 已生成 首頁 + {len(CAT_ORDER)} 個分類索引頁")
 
@@ -272,7 +335,7 @@ def main():
     urls = [f"{BASE}/"]
     urls += [f"{BASE}/{CATS[c][1]}.html" for c in CAT_ORDER]
     urls += [f"{BASE}/posts/{a['_slug']}.html" for a in all_arts]
-    today = "2026-07-02"
+    today = PUB_DATE
     entries = "\n".join(
         f"  <url><loc>{u}</loc><lastmod>{today}</lastmod>"
         f"<changefreq>weekly</changefreq><priority>{'1.0' if u.endswith('/') else '0.8'}</priority></url>"
